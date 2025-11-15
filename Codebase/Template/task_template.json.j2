@@ -1,0 +1,35 @@
+{
+  "task": "{{ task }}",
+  "description": "{{ description }}",
+  "id": {{ id }},
+  "group": "{{ group }}",
+  "owner": "{{ owner }}",
+
+  "depends_on": [
+    {% for dep in depends_on %}
+    "{{ dep }}"{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ],
+
+  "updates": [
+    {% for update in updates %}
+    {
+      "timestamp": "{{ update.timestamp }}",
+      "author": "{{ update.author }}",
+
+      "note": "{{ update.note }}",
+
+      "attachments": [
+        {% for attachment in update.attachments %}
+        {
+          "name": "{{ attachment.name }}",
+          "type": "{{ attachment.type | default('') }}",
+          "format": "{{ attachment.format | default('') }}",
+          "content": "{{ attachment.content }}"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]
+    }{% if not loop.last %},{% endif %}
+    {% endfor %}
+  ]
+}

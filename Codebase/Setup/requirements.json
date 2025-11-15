@@ -1,7 +1,10 @@
 {
-  "packages": [
-    "tensorflow==2.17.0",
-    "numpy==1.26.4",
-    "pandas>=2.0"
+  "pip": [
+    "jinja2",
+    "screeninfo"
+  ],
+  "system": [
+    "python3-tk",
+    "xbindkeys"
   ]
 }

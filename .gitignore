@@ -6,6 +6,9 @@ __pycache__/
 # C extensions
 *.so
 Tasks/
+.xbindkeysrc
+.task_gui_geometry
+UserData/
 # Distribution / packaging
 .Python
 build/
