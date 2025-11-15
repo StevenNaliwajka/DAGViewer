@@ -17,9 +17,20 @@ PROJECT_ROOT="$(cd "$CODEBASE_DIR/.." && pwd)"
 #   <project-root>/Codebase
 SCRIPTS_DIR="$CODEBASE_DIR"
 
+# We'll put a small helper "startup" script in:
+RUN_DIR="$PROJECT_ROOT/Codebase/Run"
+mkdir -p "$RUN_DIR"
+
 # Put the xbindkeys config under project-root/UserData:
 USERDATA_DIR="$PROJECT_ROOT/UserData"
 XBINDSRC="$USERDATA_DIR/.xbindkeysrc"
+
+# Autostart .desktop file (for GNOME / XFCE / etc.)
+AUTOSTART_DIR="$HOME/.config/autostart"
+DESKTOP_FILE="$AUTOSTART_DIR/dagviewer-hotkeys.desktop"
+
+# Helper script that actually (re)starts xbindkeys with this project config
+STARTER_SCRIPT="$RUN_DIR/start_dagviewer_hotkeys.sh"
 
 # Ensure UserData exists
 mkdir -p "$USERDATA_DIR"
@@ -166,7 +177,7 @@ if [[ "$BOUND_ANY" != true ]]; then
 fi
 
 # -------------------------------
-# Restart xbindkeys with this config
+# Restart xbindkeys with this config *now*
 # -------------------------------
 echo
 echo "Restarting xbindkeys with config: $XBINDSRC"
@@ -179,13 +190,69 @@ fi
 # Start xbindkeys using this specific config file
 xbindkeys -f "$XBINDSRC" &
 
+# -------------------------------
+# Create startup helper + autostart .desktop
+# -------------------------------
+echo
+echo "Setting up login autostart for DAGViewer hotkeys..."
+
+mkdir -p "$AUTOSTART_DIR"
+
+# Helper script that (re)starts xbindkeys with the project config
+cat > "$STARTER_SCRIPT" <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+# This script lives in: <project-root>/Codebase/Run/start_dagviewer_hotkeys.sh
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+USERDATA_DIR="$PROJECT_ROOT/UserData"
+XBINDSRC="$USERDATA_DIR/.xbindkeysrc"
+
+# If xbindkeys isn't installed, just exit quietly
+if ! command -v xbindkeys >/dev/null 2>&1; then
+    exit 0
+fi
+
+# Kill any existing instance so we don't stack them
+if pgrep -x xbindkeys >/dev/null 2>&1; then
+    pkill xbindkeys || true
+fi
+
+# Start xbindkeys with the project's config
+exec xbindkeys -f "$XBINDSRC"
+EOF
+
+chmod +x "$STARTER_SCRIPT"
+
+# Desktop entry so your DE's "Startup Applications" sees it
+cat > "$DESKTOP_FILE" <<EOF
+[Desktop Entry]
+Type=Application
+Version=1.0
+Name=DAGViewer Hotkeys
+Comment=Start xbindkeys for DAGViewer DAG hotkeys
+Exec=$STARTER_SCRIPT
+Terminal=false
+X-GNOME-Autostart-enabled=true
+EOF
+
 echo
 echo "Done!"
+echo
 echo "Hotkeys are now bound for selected scripts in:"
 echo "  $SCRIPTS_DIR"
 echo
 echo "Config is stored at:"
 echo "  $XBINDSRC"
+echo
+echo "Login autostart created:"
+echo "  Helper script:  $STARTER_SCRIPT"
+echo "  Autostart file: $DESKTOP_FILE"
+echo
+echo "On next login, your desktop environment should automatically run"
+echo "the DAGViewer Hotkeys 'startup app', which starts xbindkeys with"
+echo "this config so the hotkeys are active."
 echo
 echo "If hotkeys do not work, check:"
 echo "  - You are using X11 (xbindkeys does not work on Wayland)."
