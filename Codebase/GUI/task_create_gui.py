@@ -4,8 +4,8 @@ import tkinter as tk
 from tkinter import ttk, messagebox
 
 from Codebase.FileIO.create_task_file import create_task_file
-from Codebase.GUI.GUI.gui_profile import bind_submit_on_enter, load_last_geometry, center_on_current_monitor, \
-    save_geometry, TASK_GEOM_FILE, bind_escape_to_close
+from Codebase.GUI.GUI.Bind.bind_submit_on_enter import bind_submit_on_enter
+from Codebase.GUI.GUI.Bind.bind_escape_to_close import bind_escape_to_close
 
 
 def task_factory(name: str, description: str, group: str) -> dict:
@@ -87,14 +87,10 @@ def main():
 
     build_task_create_window(root)
 
-    # Geometry
-    if not load_last_geometry(root, TASK_GEOM_FILE):
-        center_on_current_monitor(root)
 
-    def on_close():
-        save_geometry(root, TASK_GEOM_FILE)
-        root.destroy()
 
+
+    on_close = None
     root.protocol("WM_DELETE_WINDOW", on_close)
     bind_escape_to_close(root, on_close)
 
@@ -103,3 +99,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+

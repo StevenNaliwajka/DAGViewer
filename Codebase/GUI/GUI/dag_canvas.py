@@ -1,49 +1,25 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-import json
 import tkinter as tk
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional
 
 # ============================
-# Helper imports (relative)
+# Relative imports (within Codebase.GUI.GUI)
 # ============================
 
-# ---- Draw helpers ----
-from .Draw.draw_graph import draw_graph as _draw_graph
-from .Draw.update_edges import update_edges as _update_edges
-from .Draw.get_node_center import get_node_center as _get_node_center
-from .Draw.draw_edges import draw_edges as _draw_edges
-
-# ---- Interaction helpers ----
-from .Interaction.on_button_press import on_button_press as _on_button_press
-from .Interaction.on_button_motion import on_button_motion as _on_button_motion
-from .Interaction.on_button_release import _on_button_release as _on_button_release
-from .Interaction.on_double_click import on_double_click as _on_double_click
-from .Interaction.on_mousewheel import on_mousewheel as _on_mousewheel
-from .Interaction.on_right_button_press import (
-    on_right_button_press as _on_right_button_press,
-)
-from .Interaction.on_right_button_motion import (
-    on_right_button_motion as _on_right_button_motion,
-)
-from .Interaction.on_right_button_release import (
-    on_right_button_release as _on_right_button_release,
-)
-
-# ---- Style helpers (groups, colors, visibility) ----
-from .Style.init_group_styles import init_group_styles as _init_group_styles
-from .Style.redraw_all import redraw_all as _redraw_all
-from .Style.set_group_visible import set_group_visible as _set_group_visible
-from .Style.get_group_styles import get_group_styles as _get_group_styles
-from .Style.generate_color_for_group import (
-    generate_color_for_group as _generate_color_for_group,
-)
-from .Style.is_group_visable_for_key import (
-    is_group_visible_for_key as _is_group_visible_for_key,
-)
+from .Draw.draw_graph import draw_graph
+from .Interaction.on_button_motion import on_button_motion
+from .Interaction.on_button_press import on_button_press
+from .Interaction.on_button_release import on_button_release
+from .Interaction.on_double_click import on_double_click
+from .Interaction.on_mousewheel import on_mousewheel
+from .Interaction.on_right_button_motion import on_right_button_motion
+from .Interaction.on_right_button_press import on_right_button_press
+from .Interaction.on_right_button_release import on_right_button_release
+from .Style.init_group_styles import init_group_styles
 
 
 # ============================
@@ -83,6 +59,10 @@ class DAGCanvas(tk.Canvas):
       - GUI/Draw
       - GUI/Interaction
       - GUI/Style
+
+    This class also renders a group legend in the top-right corner:
+      - Colored square + group name
+      - Clicking the square toggles visibility of that group
     """
 
     def __init__(self, master, nodes: Dict[str, TaskNode], **kwargs):
@@ -92,6 +72,7 @@ class DAGCanvas(tk.Canvas):
         self.nodes: Dict[str, TaskNode] = nodes
 
         # Group color + visibility (by task "group" string)
+        # Filled by init_group_styles(self)
         self.group_colors: Dict[str, str] = {}
         self.group_visible: Dict[str, bool] = {}
 
@@ -101,6 +82,9 @@ class DAGCanvas(tk.Canvas):
         #   list of edges: {'src': key, 'dst': key, 'line': int}
         self.edge_items: List[Dict[str, object]] = []
 
+        # Legend items: group -> {'rect': item_id, 'text': item_id}
+        self.group_legend_items: Dict[str, Dict[str, int]] = {}
+
         # Drag state for left-button node dragging
         self._drag_data = {
             "node_key": None,
@@ -109,7 +93,6 @@ class DAGCanvas(tk.Canvas):
         }
 
         # State for right-button edge creation (used by Interaction helpers)
-        # NOTE: this is what on_right_button_* expects.
         self._connect_data = {
             "src_key": None,
             "line_id": None,
@@ -117,97 +100,30 @@ class DAGCanvas(tk.Canvas):
 
         self.configure(background="white")
 
-        # Mouse bindings
+        # ---------------------------------------------------
+        # Mouse bindings (use function imports with self passed in)
+        # ---------------------------------------------------
+
         # Left-click: drag nodes
-        self.bind("<ButtonPress-1>", self._on_button_press)
-        self.bind("<B1-Motion>", self._on_button_motion)
-        self.bind("<ButtonRelease-1>", self._on_button_release)
-        self.bind("<Double-1>", self._on_double_click)
+        self.bind("<ButtonPress-1>", lambda e: on_button_press(self, e))
+        self.bind("<B1-Motion>", lambda e: on_button_motion(self, e))
+        self.bind("<ButtonRelease-1>", lambda e: on_button_release(self, e))
+        self.bind("<Double-1>", lambda e: on_double_click(self, e))
 
         # Right-click: create dependency edges
-        self.bind("<ButtonPress-3>", self._on_right_button_press)
-        self.bind("<B3-Motion>", self._on_right_button_motion)
-        self.bind("<ButtonRelease-3>", self._on_right_button_release)
+        self.bind("<ButtonPress-3>", lambda e: on_right_button_press(self, e))
+        if on_right_button_motion is not None:
+            self.bind("<B3-Motion>", lambda e: on_right_button_motion(self, e))
+        self.bind("<ButtonRelease-3>", lambda e: on_right_button_release(self, e))
 
         # Optional scroll wheel (vertical)
-        self.bind("<MouseWheel>", self._on_mousewheel)
-        self.bind("<Button-4>", self._on_mousewheel)  # some Linux
-        self.bind("<Button-5>", self._on_mousewheel)
+        self.bind("<MouseWheel>", lambda e: on_mousewheel(self, e))
+        self.bind("<Button-4>", lambda e: on_mousewheel(self, e))  # some Linux
+        self.bind("<Button-5>", lambda e: on_mousewheel(self, e))
 
         # Initialize group styles and draw the graph
-        self._init_group_styles()
-        self.draw_graph()
-
-    # ---------------------------------------------------
-    # Draw / layout helpers (thin wrappers)
-    # ---------------------------------------------------
-
-    def _init_group_styles(self) -> None:
-        _init_group_styles(self)
-
-    def draw_graph(self) -> None:
-        """Draw all nodes and edges."""
-        _draw_graph(self)
-
-    def draw_edges(self) -> None:
-        """(Re)draw all edges explicitly, if helper provides it."""
-        _draw_edges(self)
-
-    def update_edges(self) -> None:
-        """Update all edge positions after nodes move."""
-        _update_edges(self)
-
-    def get_node_center(self, node_key: str) -> Tuple[float, float]:
-        """Return (x, y) center of the node's rectangle."""
-        return _get_node_center(self, node_key)
-
-    # ---------------------------------------------------
-    # Group style / visibility helpers
-    # ---------------------------------------------------
-
-    def redraw_all(self) -> None:
-        _redraw_all(self)
-
-    def set_group_visible(self, group: str, visible: bool) -> None:
-        _set_group_visible(self, group, visible)
-
-    def get_group_styles(self):
-        """Return whatever structure get_group_styles defines (e.g., colors/visibility)."""
-        return _get_group_styles(self)
-
-    def generate_color_for_group(self, group: str) -> str:
-        return _generate_color_for_group(self, group)
-
-    def is_group_visible_for_key(self, node_key: str) -> bool:
-        return _is_group_visible_for_key(self, node_key)
-
-    # ---------------------------------------------------
-    # Mouse interaction wrappers
-    # ---------------------------------------------------
-
-    def _on_button_press(self, event) -> None:
-        _on_button_press(self, event)
-
-    def _on_button_motion(self, event) -> None:
-        _on_button_motion(self, event)
-
-    def _on_button_release(self, event) -> None:
-        _on_button_release(self, event)
-
-    def _on_double_click(self, event) -> None:
-        _on_double_click(self, event)
-
-    def _on_mousewheel(self, event) -> None:
-        _on_mousewheel(self, event)
-
-    def _on_right_button_press(self, event) -> None:
-        _on_right_button_press(self, event)
-
-    def _on_right_button_motion(self, event) -> None:
-        _on_right_button_motion(self, event)
-
-    def _on_right_button_release(self, event) -> None:
-        _on_right_button_release(self, event)
-
+        init_group_styles(self)
+        draw_graph(self)
+        # If you have a legend helper, you can call it here after draw_graph
 
 __all__ = ["DAGCanvas", "TaskNode"]

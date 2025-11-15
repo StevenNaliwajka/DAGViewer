@@ -16,8 +16,15 @@ from pathlib import Path
 from typing import Dict, TYPE_CHECKING
 import tkinter as tk
 
+from Codebase.Core.Pathing.get_project_root import get_project_root
 # --- Central path config ------------------------------------
 from Codebase.Core.Pathing.project_paths import ProjectPaths, add_to_sys_path
+from Codebase.GUI.GUI.Bind.bind_escape_to_close import bind_escape_to_close
+from Codebase.GUI.GUI.Geometry.load_last_geometry import load_last_geometry
+from Codebase.GUI.GUI.Geometry.save_geometry import save_geometry
+from Codebase.GUI.GUI.Style.get_group_styles import get_group_styles
+from Codebase.GUI.GUI.Style.set_group_visible import set_group_visible
+from Codebase.GUI.GUI.Tool.center_on_current_monitor import center_on_current_monitor
 
 # Make sure project_root / Codebase are on sys.path even if launched oddly
 add_to_sys_path()
@@ -25,13 +32,6 @@ add_to_sys_path()
 # --- Project imports ----------------------------------------
 from Codebase.GUI.GUI.dag_canvas import DAGCanvas
 from Codebase.GUI.Logic.dag_builder import build_dag
-from Codebase.GUI.GUI.gui_profile import (
-    DAG_GEOM_FILE,
-    load_last_geometry,
-    center_on_current_monitor,
-    save_geometry,
-    bind_escape_to_close,
-)
 
 
 def main() -> None:
@@ -57,13 +57,16 @@ def main() -> None:
     # Default size
     root.geometry("1000x700")
 
+    proj_root = get_project_root()
+    dag_geometry_file = proj_root/"UserData"/".dag_geom_file"
+
     # Geometry: load last if present, else center once
-    if not load_last_geometry(root, DAG_GEOM_FILE):
+    if not load_last_geometry(root, dag_geometry_file):
         center_on_current_monitor(root)
 
     # Close behavior (WM + ESC)
     def on_close() -> None:
-        save_geometry(root, DAG_GEOM_FILE)
+        save_geometry(root, dag_geometry_file)
         root.destroy()
 
     root.protocol("WM_DELETE_WINDOW", on_close)
@@ -90,12 +93,12 @@ def main() -> None:
         font=("TkDefaultFont", 10, "bold"),
     ).pack(anchor="nw", pady=(0, 4))
 
-    group_styles = canvas.get_group_styles()
+    group_styles = get_group_styles(canvas)
     group_vars: dict[str, tk.BooleanVar] = {}
 
     def on_toggle(group: str) -> None:
         visible = group_vars[group].get()
-        canvas.set_group_visible(group, visible)
+        set_group_visible(canvas, group, visible)
 
     # One row per group: color swatch + checkbox
     for group, (color, visible) in sorted(group_styles.items()):
