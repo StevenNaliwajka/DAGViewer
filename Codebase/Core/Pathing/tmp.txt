@@ -1,0 +1,3 @@
+Temp
+
+file paths as .sh scripts to reutnr pathing

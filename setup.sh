@@ -9,11 +9,11 @@ echo
 
 
 ## Create VENV
-chmod +x Codebase/Setup/create_venv.sh
-"$SCRIPT_DIR/Codebase/Setup/create_venv.sh"
+chmod +x Codebase/Core/Setup/create_venv.sh
+"$SCRIPT_DIR/Codebase/Core/Setup/create_venv.sh"
 ## Create TASK
-chmod +x Codebase/Setup/make_folders.sh
-"$SCRIPT_DIR/Codebase/Setup/make_folders.sh"
+chmod +x Codebase/Core/Setup/make_folders.sh
+"$SCRIPT_DIR/Codebase/Core/Setup/make_folders.sh"
 
 echo
 echo "Setup complete."

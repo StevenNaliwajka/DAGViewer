@@ -8,13 +8,14 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # Codebase dir: <project-root>/Codebase
-CODEBASE_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+CODEBASE_DIR="$(cd "$SCRIPT_DIR/../../" && pwd)"
 
 # Project root: parent of Codebase
 PROJECT_ROOT="$(cd "$CODEBASE_DIR/.." && pwd)"
 
-# Run directory holding all launch scripts: <project-root>/Codebase/Run
-RUN_DIR="$CODEBASE_DIR/Run"
+# Directory holding all launch scripts we might bind (non-recursive):
+#   <project-root>/Codebase
+SCRIPTS_DIR="$CODEBASE_DIR"
 
 # Put the xbindkeys config under project-root/UserData:
 USERDATA_DIR="$PROJECT_ROOT/UserData"
@@ -35,9 +36,9 @@ EOF
 # -------------------------------
 # Sanity checks
 # -------------------------------
-if [[ ! -d "$RUN_DIR" ]]; then
-    echo "Error: Run/ directory not found."
-    echo "Expected here: $RUN_DIR"
+if [[ ! -d "$SCRIPTS_DIR" ]]; then
+    echo "Error: Codebase/ directory not found."
+    echo "Expected here: $SCRIPTS_DIR"
     exit 1
 fi
 
@@ -55,21 +56,25 @@ if ! command -v xbindkeys >/dev/null 2>&1; then
 fi
 
 # -------------------------------
-# Collect all candidate scripts in Codebase/Run
+# Collect all candidate scripts in Codebase/ (non-recursive)
 # -------------------------------
 mapfile -d '' RUN_SCRIPTS < <(
-    find "$RUN_DIR" -maxdepth 1 -type f -name '*.sh' -print0 | sort -z
+    find "$SCRIPTS_DIR" -maxdepth 1 -type f -name '*.sh' \
+        ! -name 'bind_hotkey.sh' \
+        -print0 | sort -z
 )
 
 if (( ${#RUN_SCRIPTS[@]} == 0 )); then
-    echo "No *.sh scripts found in $RUN_DIR to bind."
+    echo "No *.sh scripts found in $SCRIPTS_DIR to bind."
     exit 0
 fi
 
-cat <<'EOF'
+cat <<EOF
 
 ================ HOTKEY BINDING SETUP ================
-This will set up xbindkeys hotkeys for scripts in Codebase/Run/.
+This will set up xbindkeys hotkeys for scripts directly under:
+
+  $SCRIPTS_DIR
 
 xbindkeys key format examples:
   "Control+Alt + t"
@@ -177,7 +182,7 @@ xbindkeys -f "$XBINDSRC" &
 echo
 echo "Done!"
 echo "Hotkeys are now bound for selected scripts in:"
-echo "  $RUN_DIR"
+echo "  $SCRIPTS_DIR"
 echo
 echo "Config is stored at:"
 echo "  $XBINDSRC"

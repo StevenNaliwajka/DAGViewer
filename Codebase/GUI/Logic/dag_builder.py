@@ -6,7 +6,6 @@ from typing import Dict
 
 # This file is Codebase.GUI.Logic.dag_builder
 # so we import siblings via relative imports from Codebase.GUI
-from ..Model.task_node import TaskNode
 from ..IO.task_loader import load_task_nodes
 
 

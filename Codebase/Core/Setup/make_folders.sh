@@ -4,7 +4,7 @@ set -euo pipefail
 # Figure out PROJECT_ROOT based on this script's location:
 # .../NeuralNetworksProject/Codebase/Setup/make_folders.sh
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/../../../" && pwd)"
 
 ## DIR locations
 TASKS_DIR="$PROJECT_ROOT/Tasks"

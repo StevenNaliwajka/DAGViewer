@@ -4,17 +4,21 @@ set -euo pipefail
 # ---------------------------------------
 # Paths
 # ---------------------------------------
+# This script lives in the project root: DAGViewer/
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$SCRIPT_DIR"
 
 CODEBASE_DIR="$PROJECT_ROOT/Codebase"
-SETUP_DIR="$CODEBASE_DIR/Setup"
-RUN_DIR="$CODEBASE_DIR/Run"
+RUN_DIR="$CODEBASE_DIR"
 
-BIND_HOTKEY="$SETUP_DIR/bind_hotkey.sh"
+# bind_hotkey.sh lives next to run.sh in project root
+BIND_HOTKEY="$CODEBASE_DIR/Core/Setup/bind_hotkey.sh"
+
+# These live under Codebase/Run
 CREATE_TASK="$RUN_DIR/create_task.sh"
 VIEW_DAG="$RUN_DIR/view_dag.sh"
 
+# UserData matches ProjectPaths.userdata (ProjectRoot/UserData)
 USERDATA_DIR="$PROJECT_ROOT/UserData"
 PREFS_FILE="$USERDATA_DIR/.run_prefs"
 
@@ -79,7 +83,7 @@ You can use it in three main ways:
 
 You can also run those scripts manually:
 
-  Codebase/Setup/bind_hotkey.sh
+  ./bind_hotkey.sh          (project root)
   Codebase/Run/create_task.sh
   Codebase/Run/view_dag.sh
 
