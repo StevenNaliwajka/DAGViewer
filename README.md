@@ -7,7 +7,7 @@ A small tool to **plan tasks as a DAG** (Directed Acyclic Graph).
 ## How to run (simple flow)
 
 - Create venv + install deps (once)
-  - `./setup.sh` (if present in repo)
+  - `./setup.sh`
 - Use the main launcher:
   - `./run.sh`
     - Option to:
