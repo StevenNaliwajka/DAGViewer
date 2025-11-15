@@ -9,6 +9,7 @@ Tasks/
 .xbindkeysrc
 .task_gui_geometry
 UserData/
+.temp/
 # Distribution / packaging
 .Python
 build/

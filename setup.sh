@@ -11,6 +11,9 @@ echo
 ## Create VENV
 chmod +x Codebase/Setup/create_venv.sh
 "$SCRIPT_DIR/Codebase/Setup/create_venv.sh"
+## Create TASK
+chmod +x Codebase/Setup/make_folders.sh
+"$SCRIPT_DIR/Codebase/Setup/make_folders.sh"
 
 echo
 echo "Setup complete."

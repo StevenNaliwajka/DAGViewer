@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Location of this script (project root: DAGViewer)
+# This script lives in: <project-root>/Codebase/Run
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 
@@ -17,8 +17,13 @@ fi
 
 cd "$PROJECT_ROOT"
 
-# Make sure the project root is on PYTHONPATH so 'Codebase' can be imported
 export PYTHONPATH="$PROJECT_ROOT${PYTHONPATH:+:$PYTHONPATH}"
 
-# Run the GUI as a module
-exec "$PYTHON_BIN" -m Codebase.GUI.task_create_gui "$@"
+echo "PROJECT_ROOT: $PROJECT_ROOT"
+echo "Using python: $PYTHON_BIN"
+echo "PYTHONPATH:   $PYTHONPATH"
+echo
+
+MODULE="Codebase.GUI.GUI.task_create_gui"
+
+"$PYTHON_BIN" -m Codebase.GUI.Run.task_create_gui

@@ -70,7 +70,7 @@ class Task:
         }
 
 
-# ---------- Convenience factory for the GUI ----------
+# ---------- Convenience factory for the Run ----------
 
 def task(
     name: str,
@@ -79,7 +79,7 @@ def task(
     owner: str = "Steven",
 ) -> Task:
     """
-    Convenience function so the GUI can call:
+    Convenience function so the Run can call:
 
         t = task(task_name, description, group)
 
