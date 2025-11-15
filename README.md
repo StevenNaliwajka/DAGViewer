@@ -23,8 +23,8 @@ A small tool to **plan tasks as a DAG** (Directed Acyclic Graph).
 
 ## What it does
 
-![Screenshot](/Binarys/Screenshot from 2025-11-15 07-40-13.png)
-![Screenshot2](/Binarys/Screenshot from 2025-11-15 07-41-47.png)
+![Screenshot](/Binarys/Screenshot from 2025-11-15 07-40-13.png)  
+![Screenshot2](/Binarys/Screenshot from 2025-11-15 07-41-47.png)  
 
 
 - Stores tasks as simple **JSON files** in `Tasks/`
