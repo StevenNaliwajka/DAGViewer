@@ -1,0 +1,51 @@
+{
+  "task": "Task at Hand",
+  "description": "Description of Task",
+  "id": 1,
+  "group": "AAAA",
+  "owner": "Steven",
+
+  "depends_on": ["clean_data"],
+
+  "updates": [
+    {
+      "timestamp": "",
+      "author": "kevin",
+
+      "note": "",
+
+      "attachments": [
+        {
+          "name": "",
+          "type": "",
+          "content": ""
+        },
+        {
+          "name": "",
+          "format": "",
+          "content": ""
+        }
+      ]
+    },
+
+    {
+      "timestamp": "",
+      "author": "kevin",
+
+      "note": "",
+
+      "attachments": [
+        {
+          "name": "",
+          "type": "",
+          "content": ""
+        },
+        {
+          "name": "",
+          "format": "",
+          "content": ""
+        }
+      ]
+    }
+  ]
+}

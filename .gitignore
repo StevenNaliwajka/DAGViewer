@@ -5,7 +5,7 @@ __pycache__/
 
 # C extensions
 *.so
-
+Tasks/
 # Distribution / packaging
 .Python
 build/
