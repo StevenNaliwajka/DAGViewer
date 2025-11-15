@@ -1,254 +1,213 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
-from typing import Dict, List, Tuple, Optional
-
+import json
 import tkinter as tk
-from tkinter import messagebox
-
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Optional
+from typing import Dict, List, Optional, Tuple
 
+# ============================
+# Helper imports (relative)
+# ============================
+
+# ---- Draw helpers ----
+from .Draw.draw_graph import draw_graph as _draw_graph
+from .Draw.update_edges import update_edges as _update_edges
+from .Draw.get_node_center import get_node_center as _get_node_center
+from .Draw.draw_edges import draw_edges as _draw_edges
+
+# ---- Interaction helpers ----
+from .Interaction.on_button_press import on_button_press as _on_button_press
+from .Interaction.on_button_motion import on_button_motion as _on_button_motion
+from .Interaction.on_button_release import _on_button_release as _on_button_release
+from .Interaction.on_double_click import on_double_click as _on_double_click
+from .Interaction.on_mousewheel import on_mousewheel as _on_mousewheel
+from .Interaction.on_right_button_press import (
+    on_right_button_press as _on_right_button_press,
+)
+from .Interaction.on_right_button_motion import (
+    on_right_button_motion as _on_right_button_motion,
+)
+from .Interaction.on_right_button_release import (
+    on_right_button_release as _on_right_button_release,
+)
+
+# ---- Style helpers (groups, colors, visibility) ----
+from .Style.init_group_styles import init_group_styles as _init_group_styles
+from .Style.redraw_all import redraw_all as _redraw_all
+from .Style.set_group_visible import set_group_visible as _set_group_visible
+from .Style.get_group_styles import get_group_styles as _get_group_styles
+from .Style.generate_color_for_group import (
+    generate_color_for_group as _generate_color_for_group,
+)
+from .Style.is_group_visable_for_key import (
+    is_group_visible_for_key as _is_group_visible_for_key,
+)
+
+
+# ============================
+# Data model
+# ============================
+
+@dataclass
+class TaskNode:
+    """
+    In-memory representation of a task JSON file.
+
+    - key:   unique key, usually filename stem, e.g. "EEEE1"
+    - label: display label, from "task" field in the JSON
+    """
+    key: str
+    label: str
+    file_path: Path
+    depends_on_raw: List[str] = field(default_factory=list)
+    group: Optional[str] = None
+    id: Optional[int] = None
+
+    # Resolved DAG fields (filled after loading)
+    deps_resolved: List[str] = field(default_factory=list)   # keys this node depends on
+    children: List[str] = field(default_factory=list)        # outgoing edges (this -> child)
+    level: int = 0                                           # layout layer
+
+
+# ============================
+# Canvas widget
+# ============================
 
 class DAGCanvas(tk.Canvas):
     """
     Tkinter Canvas subclass for drawing and interacting with the DAG.
 
-    Extracted from dag_viewer.py into a reusable widget. :contentReference[oaicite:8]{index=8}
+    All heavy logic is delegated to helper modules under:
+      - GUI/Draw
+      - GUI/Interaction
+      - GUI/Style
     """
 
     def __init__(self, master, nodes: Dict[str, TaskNode], **kwargs):
         super().__init__(master, **kwargs)
 
-        self.nodes = nodes
+        # Core DAG data
+        self.nodes: Dict[str, TaskNode] = nodes
 
-        # key -> {'rect': int, 'text': int}
+        # Group color + visibility (by task "group" string)
+        self.group_colors: Dict[str, str] = {}
+        self.group_visible: Dict[str, bool] = {}
+
+        # Canvas items:
+        #   key -> {'rect': int, 'text': int}
         self.node_items: Dict[str, Dict[str, int]] = {}
-
-        # list of edges: {'src': key, 'dst': key, 'line': int}
+        #   list of edges: {'src': key, 'dst': key, 'line': int}
         self.edge_items: List[Dict[str, object]] = []
 
-        # Drag state
+        # Drag state for left-button node dragging
         self._drag_data = {
             "node_key": None,
             "x": 0,
             "y": 0,
         }
 
+        # State for right-button edge creation (used by Interaction helpers)
+        # NOTE: this is what on_right_button_* expects.
+        self._connect_data = {
+            "src_key": None,
+            "line_id": None,
+        }
+
         self.configure(background="white")
 
         # Mouse bindings
+        # Left-click: drag nodes
         self.bind("<ButtonPress-1>", self._on_button_press)
         self.bind("<B1-Motion>", self._on_button_motion)
         self.bind("<ButtonRelease-1>", self._on_button_release)
         self.bind("<Double-1>", self._on_double_click)
+
+        # Right-click: create dependency edges
+        self.bind("<ButtonPress-3>", self._on_right_button_press)
+        self.bind("<B3-Motion>", self._on_right_button_motion)
+        self.bind("<ButtonRelease-3>", self._on_right_button_release)
 
         # Optional scroll wheel (vertical)
         self.bind("<MouseWheel>", self._on_mousewheel)
         self.bind("<Button-4>", self._on_mousewheel)  # some Linux
         self.bind("<Button-5>", self._on_mousewheel)
 
+        # Initialize group styles and draw the graph
+        self._init_group_styles()
         self.draw_graph()
 
-    # -------------------------
-    # Layout & drawing
-    # -------------------------
+    # ---------------------------------------------------
+    # Draw / layout helpers (thin wrappers)
+    # ---------------------------------------------------
+
+    def _init_group_styles(self) -> None:
+        _init_group_styles(self)
 
     def draw_graph(self) -> None:
-        """
-        Compute initial layout and draw nodes + edges.
-        """
-        self.delete("all")
-        self.node_items.clear()
-        self.edge_items.clear()
+        """Draw all nodes and edges."""
+        _draw_graph(self)
 
-        # Group nodes by level
-        level_to_keys: Dict[int, List[str]] = {}
-        for key, node in self.nodes.items():
-            level_to_keys.setdefault(node.level, []).append(key)
+    def draw_edges(self) -> None:
+        """(Re)draw all edges explicitly, if helper provides it."""
+        _draw_edges(self)
 
-        # Simple grid layout
-        x_spacing = 180
-        y_spacing = 120
-        node_width = 140
-        node_height = 50
-        y_start = 80
-        x_margin = 100
+    def update_edges(self) -> None:
+        """Update all edge positions after nodes move."""
+        _update_edges(self)
 
-        max_x = 0
-        max_y = 0
+    def get_node_center(self, node_key: str) -> Tuple[float, float]:
+        """Return (x, y) center of the node's rectangle."""
+        return _get_node_center(self, node_key)
 
-        for level in sorted(level_to_keys.keys()):
-            keys = level_to_keys[level]
-            count = len(keys)
-            row_width = (count - 1) * x_spacing
-            x0 = x_margin
+    # ---------------------------------------------------
+    # Group style / visibility helpers
+    # ---------------------------------------------------
 
-            y = y_start + level * y_spacing
+    def redraw_all(self) -> None:
+        _redraw_all(self)
 
-            for i, key in enumerate(keys):
-                x = x0 + i * x_spacing
+    def set_group_visible(self, group: str, visible: bool) -> None:
+        _set_group_visible(self, group, visible)
 
-                x1 = x - node_width / 2
-                y1 = y - node_height / 2
-                x2 = x + node_width / 2
-                y2 = y + node_height / 2
+    def get_group_styles(self):
+        """Return whatever structure get_group_styles defines (e.g., colors/visibility)."""
+        return _get_group_styles(self)
 
-                rect = self.create_rectangle(
-                    x1, y1, x2, y2,
-                    outline="black",
-                    fill="#f0f0ff",
-                    width=2,
-                    tags=("node", key),
-                )
-                text = self.create_text(
-                    x,
-                    y,
-                    text=self.nodes[key].label,
-                    tags=("label", key),
-                )
+    def generate_color_for_group(self, group: str) -> str:
+        return _generate_color_for_group(self, group)
 
-                self.node_items[key] = {"rect": rect, "text": text}
+    def is_group_visible_for_key(self, node_key: str) -> bool:
+        return _is_group_visible_for_key(self, node_key)
 
-                max_x = max(max_x, x2 + 50)
-                max_y = max(max_y, y2 + 50)
+    # ---------------------------------------------------
+    # Mouse interaction wrappers
+    # ---------------------------------------------------
 
-        # Draw edges after all nodes are positioned
-        self._draw_edges()
+    def _on_button_press(self, event) -> None:
+        _on_button_press(self, event)
 
-        # Set scroll region
-        self.config(scrollregion=(0, 0, max_x, max_y))
+    def _on_button_motion(self, event) -> None:
+        _on_button_motion(self, event)
 
-    def _draw_edges(self) -> None:
-        self.edge_items.clear()
-        for key, node in self.nodes.items():
-            # edges from dep -> node.key
-            for dep_key in node.deps_resolved:
-                if dep_key not in self.node_items or key not in self.node_items:
-                    continue
+    def _on_button_release(self, event) -> None:
+        _on_button_release(self, event)
 
-                src_center = self._get_node_center(dep_key)
-                dst_center = self._get_node_center(key)
+    def _on_double_click(self, event) -> None:
+        _on_double_click(self, event)
 
-                line = self.create_line(
-                    *src_center,
-                    *dst_center,
-                    arrow=tk.LAST,
-                    width=2,
-                )
-                self.edge_items.append({"src": dep_key, "dst": key, "line": line})
+    def _on_mousewheel(self, event) -> None:
+        _on_mousewheel(self, event)
 
-    def _update_edges(self) -> None:
-        """
-        Update all edge line coordinates based on node positions.
-        """
-        for edge in self.edge_items:
-            src = edge["src"]
-            dst = edge["dst"]
-            line_id = edge["line"]
-            if src not in self.node_items or dst not in self.node_items:
-                continue
-            x1, y1 = self._get_node_center(src)
-            x2, y2 = self._get_node_center(dst)
-            self.coords(line_id, x1, y1, x2, y2)
+    def _on_right_button_press(self, event) -> None:
+        _on_right_button_press(self, event)
 
-    def _get_node_center(self, key: str) -> Tuple[float, float]:
-        rect_id = self.node_items[key]["rect"]
-        x1, y1, x2, y2 = self.coords(rect_id)
-        return (x1 + x2) / 2.0, (y1 + y2) / 2.0
+    def _on_right_button_motion(self, event) -> None:
+        _on_right_button_motion(self, event)
 
-    # -------------------------
-    # Interaction handlers
-    # -------------------------
-
-    def _find_node_key_from_item(self, item_id: int) -> Optional[str]:
-        tags = self.gettags(item_id)
-        for t in tags:
-            if t in self.nodes:
-                return t
-        return None
-
-    def _on_button_press(self, event):
-        item = self.find_closest(event.x, event.y)
-        if not item:
-            return
-        item_id = item[0]
-
-        key = self._find_node_key_from_item(item_id)
-        if key is None:
-            return
-
-        self._drag_data["node_key"] = key
-        self._drag_data["x"] = event.x
-        self._drag_data["y"] = event.y
-
-    def _on_button_motion(self, event):
-        key = self._drag_data["node_key"]
-        if key is None:
-            return
-
-        dx = event.x - self._drag_data["x"]
-        dy = event.y - self._drag_data["y"]
-        self._drag_data["x"] = event.x
-        self._drag_data["y"] = event.y
-
-        rect_id = self.node_items[key]["rect"]
-        text_id = self.node_items[key]["text"]
-
-        self.move(rect_id, dx, dy)
-        self.move(text_id, dx, dy)
-
-        self._update_edges()
-
-    def _on_button_release(self, event):
-        self._drag_data["node_key"] = None
-
-    def _on_double_click(self, event):
-        item = self.find_closest(event.x, event.y)
-        if not item:
-            return
-        item_id = item[0]
-        key = self._find_node_key_from_item(item_id)
-        if key is None:
-            return
-
-        node = self.nodes[key]
-        info = [
-            f"Key: {node.key}",
-            f"Label: {node.label}",
-            f"File: {node.file_path.name}",
-            f"Group: {node.group}",
-            f"ID: {node.id}",
-            "",
-            f"Depends on: {', '.join(node.deps_resolved) if node.deps_resolved else '(none)'}",
-            f"Children: {', '.join(node.children) if node.children else '(none)'}",
-        ]
-        messagebox.showinfo("Task info", "\n".join(info))
-
-    def _on_mousewheel(self, event):
-        if getattr(event, "num", None) == 4 or event.delta > 0:
-            self.yview_scroll(-2, "units")
-        else:
-            self.yview_scroll(2, "units")
+    def _on_right_button_release(self, event) -> None:
+        _on_right_button_release(self, event)
 
 
-    @dataclass
-    class TaskNode:
-        """
-        In-memory representation of a task JSON file.
-
-        - key:   unique key, usually filename stem, e.g. "EEEE1"
-        - label: display label, from "task" field in the JSON
-        """
-        key: str
-        label: str
-        file_path: Path
-        depends_on_raw: List[str] = field(default_factory=list)
-        group: Optional[str] = None
-        id: Optional[int] = None
-
-        # Resolved DAG fields (filled after loading)
-        deps_resolved: List[str] = field(default_factory=list)   # keys this node depends on
-        children: List[str] = field(default_factory=list)        # outgoing edges (this -> child)
-        level: int = 0                                           # layout layer
+__all__ = ["DAGCanvas", "TaskNode"]

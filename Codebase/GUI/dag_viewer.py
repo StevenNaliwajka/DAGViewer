@@ -33,12 +33,6 @@ from Codebase.GUI.GUI.gui_profile import (
     bind_escape_to_close,
 )
 
-# Only for type checking / IDEs; NOT run at runtime
-if TYPE_CHECKING:
-    # If/when you actually create this module, this will type-check nicely.
-    # Until then, you can comment this out; it's not required to run.
-    from Codebase.Model.task_node import TaskNode
-
 
 def main() -> None:
     # Use the central path definition for Tasks
@@ -75,8 +69,59 @@ def main() -> None:
     root.protocol("WM_DELETE_WINDOW", on_close)
     bind_escape_to_close(root, on_close)
 
-    canvas = DAGCanvas(root, nodes, width=1000, height=700)
-    canvas.pack(fill="both", expand=True)
+    root.protocol("WM_DELETE_WINDOW", on_close)
+    bind_escape_to_close(root, on_close)
+
+    # ---- Main layout: canvas + right-side group filters ----
+    main_frame = tk.Frame(root)
+    main_frame.pack(fill="both", expand=True)
+
+    # Canvas on the left
+    canvas = DAGCanvas(main_frame, nodes, width=1000, height=700)
+    canvas.pack(side="left", fill="both", expand=True)
+
+    # Sidebar on the right for group toggles
+    sidebar = tk.Frame(main_frame, padx=8, pady=8, relief="groove", borderwidth=2)
+    sidebar.pack(side="right", fill="y")
+
+    tk.Label(
+        sidebar,
+        text="Groups",
+        font=("TkDefaultFont", 10, "bold"),
+    ).pack(anchor="nw", pady=(0, 4))
+
+    group_styles = canvas.get_group_styles()
+    group_vars: dict[str, tk.BooleanVar] = {}
+
+    def on_toggle(group: str) -> None:
+        visible = group_vars[group].get()
+        canvas.set_group_visible(group, visible)
+
+    # One row per group: color swatch + checkbox
+    for group, (color, visible) in sorted(group_styles.items()):
+        row = tk.Frame(sidebar)
+        row.pack(fill="x", anchor="nw", pady=2)
+
+        swatch = tk.Label(
+            row,
+            width=2,
+            background=color,
+            relief="solid",
+            borderwidth=1,
+        )
+        swatch.pack(side="left", padx=(0, 4))
+
+        var = tk.BooleanVar(value=visible)
+        group_vars[group] = var
+
+        cb = tk.Checkbutton(
+            row,
+            text=group,
+            variable=var,
+            command=lambda g=group: on_toggle(g),
+            anchor="w",
+        )
+        cb.pack(side="left", fill="x", expand=True)
 
     root.mainloop()
 

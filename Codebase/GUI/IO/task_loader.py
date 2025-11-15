@@ -46,7 +46,8 @@ class TaskNode:
     # Layout position for the canvas
     x: float = 0.0
     y: float = 0.0
-
+    # DAG layer for layout
+    level: int = 0
 
 def load_task_nodes(tasks_dir: Path | None = None) -> Dict[str, TaskNode]:
     """
