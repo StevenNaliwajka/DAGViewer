@@ -23,6 +23,10 @@ A small tool to **plan tasks as a DAG** (Directed Acyclic Graph).
 
 ## What it does
 
+![Screenshot](/Binarys/Screenshot from 2025-11-15 07-40-13.png)
+![Screenshot2](/Binarys/Screenshot from 2025-11-15 07-41-47.png)
+
+
 - Stores tasks as simple **JSON files** in `Tasks/`
 - Uses a **Jinja2 template** (`Codebase/Template/task_template.json.j2`) for new tasks
 - Shows tasks as **nodes in a graph**
