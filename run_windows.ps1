@@ -10,14 +10,14 @@ $ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = $ScriptDir
 
 $CodebaseDir = Join-Path $ProjectRoot "Codebase"
-$RunDir      = Join-Path $CodebaseDir "Run"
 
-# bind_hotkey.ps1 lives under Codebase/Core/Setup
-$BindHotkey  = Join-Path $CodebaseDir "Core/Setup/bind_hotkey.ps1"
+# Hotkey script: Codebase/Hotkeys/bind_hotkeys.ps1
+$HotkeysDir  = Join-Path $CodebaseDir "Hotkeys"
+$BindHotkey  = Join-Path $HotkeysDir "bind_hotkeys.ps1"
 
-# These live under Codebase/Run
-$CreateTask  = Join-Path $RunDir "create_task.ps1"
-$ViewDag     = Join-Path $RunDir "view_dag.ps1"
+# create_task.ps1 and view_dag.ps1 live directly under Codebase/
+$CreateTask  = Join-Path $CodebaseDir "create_task.ps1"
+$ViewDag     = Join-Path $CodebaseDir "view_dag.ps1"
 
 # UserData matches ProjectPaths.userdata (ProjectRoot/UserData)
 $UserDataDir = Join-Path $ProjectRoot "UserData"
@@ -73,7 +73,7 @@ visualizing them as a Directed Acyclic Graph (DAG).
 
 You can use it in three main ways:
 
-  1) bind_hotkey.ps1 (recommended)
+  1) bind_hotkeys.ps1 (recommended)
      - Sets up a global hotkey (via your Windows hotkey
        mechanism, e.g. AutoHotkey or a shortcut) that
        launches the "Create Task" GUI.
@@ -91,9 +91,9 @@ You can use it in three main ways:
 
 You can also run those scripts manually:
 
-  Codebase\Core\Setup\bind_hotkey.ps1
-  Codebase\Run\create_task.ps1
-  Codebase\Run\view_dag.ps1
+  Codebase\Hotkeys\bind_hotkeys.ps1
+  Codebase\create_task.ps1
+  Codebase\view_dag.ps1
 
 =====================================================
 '@ | Write-Host
@@ -114,7 +114,7 @@ $choice = Read-Host "Enter choice [1/2/3/q]"
 
 switch ($choice.ToLower()) {
     '1' {
-        Invoke-Script -Path $BindHotkey -Label "bind_hotkey.ps1"
+        Invoke-Script -Path $BindHotkey -Label "bind_hotkeys.ps1"
     }
     '2' {
         Invoke-Script -Path $CreateTask -Label "create_task.ps1"
