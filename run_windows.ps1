@@ -10,9 +10,10 @@ $ScriptDir   = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ProjectRoot = $ScriptDir
 
 $CodebaseDir = Join-Path $ProjectRoot "Codebase"
+$CoreDir = Join-Path $CodebaseDir "Core"
 
 # Hotkey script: Codebase/Hotkeys/bind_hotkeys.ps1
-$HotkeysDir  = Join-Path $CodebaseDir "Hotkeys"
+$HotkeysDir  = Join-Path $CoreDir "Hotkeys"
 $BindHotkey  = Join-Path $HotkeysDir "bind_hotkeys.ps1"
 
 # create_task.ps1 and view_dag.ps1 live directly under Codebase/
@@ -134,18 +135,3 @@ switch ($choice.ToLower()) {
 
 Write-Host ""
 
-# ---------------------------------------
-# Ask whether to hide intro next time
-# ---------------------------------------
-if ($ShowIntro -eq 1) {
-    Write-Host "If you want to skip the long explanation next time,"
-    Write-Host "type '1' now. Press Enter to keep seeing it."
-    $skip = Read-Host "Skip intro in future? [1 = yes / Enter = no]"
-
-    if ($skip -eq '1') {
-        'SHOW_INTRO=0' | Set-Content -Path $PrefsFile -Encoding UTF8
-        Write-Host "Okay, intro will be skipped next time."
-    } else {
-        'SHOW_INTRO=1' | Set-Content -Path $PrefsFile -Encoding UTF8
-    }
-}

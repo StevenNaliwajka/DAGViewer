@@ -11,7 +11,7 @@ PROJECT_ROOT="$SCRIPT_DIR"
 CODEBASE_DIR="$PROJECT_ROOT/Codebase"
 RUN_DIR="$CODEBASE_DIR"
 
-# bind_hotkey.sh lives next to run.sh in project root
+# bind_hotkey.sh lives next to run_linux.sh in project root
 BIND_HOTKEY="$CODEBASE_DIR/Core/Setup/bind_hotkey.sh"
 
 # These live under Codebase/Run
@@ -125,19 +125,3 @@ case "$choice" in
 esac
 
 echo
-
-# ---------------------------------------
-# Ask whether to hide intro next time
-# ---------------------------------------
-if [[ "${SHOW_INTRO:-1}" -eq 1 ]]; then
-    echo "If you want to skip the long explanation next time,"
-    echo "type '1' now. Press Enter to keep seeing it."
-    read -rp "Skip intro in future? [1 = yes / Enter = no]: " skip
-
-    if [[ "$skip" == "1" ]]; then
-        echo "SHOW_INTRO=0" > "$PREFS_FILE"
-        echo "Okay, intro will be skipped next time."
-    else
-        echo "SHOW_INTRO=1" > "$PREFS_FILE"
-    fi
-fi
